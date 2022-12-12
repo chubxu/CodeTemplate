@@ -17,6 +17,7 @@
         <module>springboot01-helloworld</module>
         <module>springboot02-web</module>
         <module>springboot03-redis</module>
+        <module>springboot04-brpc</module>
     </modules>
 
     <properties>
