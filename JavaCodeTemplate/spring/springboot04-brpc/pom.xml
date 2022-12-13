@@ -32,6 +32,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
         </dependency>
+
+        <!--brpc java-->
+        <dependency>
+            <groupId>com.baidu.cloud</groupId>
+            <artifactId>spring-cloud-starter-baidu-starlight</artifactId>
+            <version>2022.2.0</version>
+        </dependency>
+
+        <!--apache httpclient-->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
+        </dependency>
     </dependencies>
 
     <build>

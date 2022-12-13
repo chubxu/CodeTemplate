@@ -1,5 +1,6 @@
 package org.chubxu.brpc;
 
+import com.baidu.cloud.starlight.springcloud.server.annotation.StarlightScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @Author chubxu
  */
 @SpringBootApplication
+@StarlightScan
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

@@ -1,0 +1,4 @@
+starlight:
+  server:
+    enable: true
+    port: 8777
