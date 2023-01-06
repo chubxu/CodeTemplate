@@ -32,13 +32,12 @@ public class Lt504 {
         boolean n = num < 0;
         num = Math.abs(num);
         StringBuilder sb = new StringBuilder();
-        while (num / 7 != 0) {
+        while (num > 0) {
             sb.append(num % 7);
             num /= 7;
         }
-        sb.append(num);
         if (n) {
-            sb.append("~");
+            sb.append("-");
         }
         return sb.reverse().toString();
     }
