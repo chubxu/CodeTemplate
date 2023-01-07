@@ -4,16 +4,14 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
 import org.chubxu.easyexcel.domain.Student;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -76,6 +74,26 @@ public class EasyexcelController {
     public void readExcel() {
         File file = new File("H:\\Code\\CodeTemplate\\JavaCodeTemplate\\spring\\springboot05-easyexcel\\src\\main\\resources\\file.xlsx");
 
+        EasyExcel.read(file, Student.class, new ReadListener<Student>() {
+            @Override
+            public void invoke(Student s, AnalysisContext analysisContext) {
+                System.out.println(s);
+            }
+
+            @Override
+            public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+                System.out.println("read finished");
+            }
+        }).sheet("sheet1").doRead();
+    }
+
+    @PostMapping("/write")
+    public void write(@RequestBody Student student) {
+        File file = new File("H:\\Code\\CodeTemplate\\JavaCodeTemplate\\spring\\springboot05-easyexcel\\src\\main\\resources\\file.xlsx");
+
+        EasyExcel.write(file, Student.class).sheet("sheet1").doWrite(Collections.singleton(student));
+
+        // 写入成功后，我们尝试读取下文件
         EasyExcel.read(file, Student.class, new ReadListener<Student>() {
             @Override
             public void invoke(Student s, AnalysisContext analysisContext) {
