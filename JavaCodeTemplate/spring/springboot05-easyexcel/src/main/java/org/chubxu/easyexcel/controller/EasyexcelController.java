@@ -5,8 +5,10 @@ import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
 import org.chubxu.easyexcel.domain.Student;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -46,6 +48,25 @@ public class EasyexcelController {
 
             // 写入数据
             EasyExcel.write(response.getOutputStream(), Student.class).sheet("sheet1").doWrite(studentList);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @PostMapping("/upload")
+    public void upload(MultipartFile file) {
+        try {
+            EasyExcel.read(file.getInputStream(), Student.class, new ReadListener<Student>() {
+                @Override
+                public void invoke(Student s, AnalysisContext analysisContext) {
+                    System.out.println(s);
+                }
+
+                @Override
+                public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+                    System.out.println("read finished");
+                }
+            }).sheet("sheet1").doRead();
         } catch (Exception e) {
             e.printStackTrace();
         }
