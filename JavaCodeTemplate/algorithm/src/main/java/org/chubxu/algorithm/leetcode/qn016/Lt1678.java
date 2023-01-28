@@ -39,4 +39,24 @@ package org.chubxu.algorithm.leetcode.qn016;
  * @Author chubxu
  */
 public class Lt1678 {
+    public String interpret(String command) {
+        char[] chars = command.toCharArray();
+        int index = 0;
+        StringBuilder sb = new StringBuilder();
+        while (index < chars.length) {
+            if (chars[index] == 'G') {
+                sb.append("G");
+                index++;
+            } else if (chars[index] == '(') {
+                if (index+1 < chars.length && chars[index+1] == ')') {
+                    sb.append("o");
+                    index += 2;
+                } else {
+                    sb.append("al");
+                    index += 4;
+                }
+            }
+        }
+        return sb.toString();
+    }
 }
