@@ -1,0 +1,54 @@
+services:
+  mb-mysql:
+    build: 
+      context: ./mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    container_name: mb-mysql
+    ports:
+      - 3306:3306
+  
+  mb-elasticsearch:
+    container_name: mb-elasticsearch
+    image: elasticsearch:7.16.2
+    restart: always
+    environment:
+      # 开启内存锁定
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      # 指定单节点启动
+      - discovery.type=single-node
+    ulimits:
+      # 取消内存相关限制 用于开启内存锁定
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+      - ./elasticsearch/logs:/usr/share/elasticsearch/logs
+      - ./elasticsearch/plugins:/usr/share/elasticsearch/plugins
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+  mb-server:
+    build: 
+      context: ./server
+    container_name: mb-server
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - mb-mysql
+      - mb-elasticsearch
+
+  mb-web:
+    build: 
+      context: ./web
+    container_name: mb-web
+    restart: always
+    ports:
+      - 9999:9999
+    depends_on:
+      - mb-server
