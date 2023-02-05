@@ -38,9 +38,9 @@ docker run -d \
   -p 9300:9300 \
   -e ES_JAVA_OPS="-Xms512m -Xmx512m" \
   -e "discovery.type=single-node" \
-  -v /home/xu/Desktop/code/opensource/MoonBox-main/docker/elasticsearch/data:/usr/share/elasticsearch/data \
-  -v /home/xu/Desktop/code/opensource/MoonBox-main/docker/elasticsearch/logs:/usr/share/elasticsearch/logs \
-  -v /home/xu/Desktop/code/opensource/MoonBox-main/docker/elasticsearch/plugins:/usr/share/elasticsearch/plugins \
+  -v /docker/elasticsearch/data:/usr/share/elasticsearch/data \
+  -v /docker/elasticsearch/logs:/usr/share/elasticsearch/logs \
+  -v /docker/elasticsearch/plugins:/usr/share/elasticsearch/plugins \
   --network mb-network \
 elasticsearch:7.16.2
 

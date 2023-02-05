@@ -1,3 +1,4 @@
+version: "3"
 services:
   mb-mysql:
     build: 
@@ -8,7 +9,6 @@ services:
     container_name: mb-mysql
     ports:
       - 3306:3306
-  
   mb-elasticsearch:
     container_name: mb-elasticsearch
     image: elasticsearch:7.16.2
@@ -31,7 +31,6 @@ services:
     ports:
       - 9200:9200
       - 9300:9300
-
   mb-server:
     build: 
       context: ./server
@@ -42,7 +41,6 @@ services:
     depends_on:
       - mb-mysql
       - mb-elasticsearch
-
   mb-web:
     build: 
       context: ./web
