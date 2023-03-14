@@ -1,0 +1,13 @@
+package org.chubxu.algorithm.leetcode.qn017;
+
+public class Lt1791 {
+    public int findCenter(int[][] edges) {
+        if (edges[0][0] == edges[1][0]) {
+            return edges[0][0];
+        } else if (edges[0][0] == edges[1][1]) {
+            return edges[0][0];
+        } else {
+            return edges[0][1];
+        }
+    }
+}
