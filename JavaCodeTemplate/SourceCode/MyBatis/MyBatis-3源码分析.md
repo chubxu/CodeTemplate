@@ -332,3 +332,393 @@ public TypeAliasRegistry() {
     // ......
 }
 ```
+
+### 4.4、plugins节点解析
+
+这里先给一个比较完整的plugins节点配置：
+
+```XML
+<plugins>
+  <plugin interceptor="org.mybatis.example.ExamplePlugin">
+    <property name="someProperty" value="100"/>
+  </plugin>
+</plugins>
+```
+
+解析过程如下所示，节点解析没啥好说的，和上面都一样，解析plugins节点的interceptor属性，获取全限定类名，然后通过反射实例化plugin对象，将其传递进Configuration对象中。
+
+解析过程如下所示，
+
+这里要注意下Configuration对象中的interceptorChain属性，这是一个拦截链对象，里面存储了所有定义的插件。后续执行SQL时，都会首先被该拦截链拦截，依次执行插件中的拦截方法。
+
+```Java
+// XMLConfigBuilder.java
+private void pluginElement(XNode parent) throws Exception {
+  if (parent != null) {
+    for (XNode child : parent.getChildren()) {
+      // 解析interceptor属性，获取全限定类名
+      String interceptor = child.getStringAttribute("interceptor");
+      Properties properties = child.getChildrenAsProperties();
+      // 反射获取插件实例
+      Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).getDeclaredConstructor().newInstance();
+      // 如果设置了properties，将properties设置进插件中
+      interceptorInstance.setProperties(properties);
+      // 存放进拦截链
+      configuration.addInterceptor(interceptorInstance);
+    }
+  }
+}
+// Configuration.java
+public void addInterceptor(Interceptor interceptor) {
+  interceptorChain.addInterceptor(interceptor);
+}
+// InterceptorChain.java
+private final List<Interceptor> interceptors = new ArrayList<>();
+public void addInterceptor(Interceptor interceptor) {
+  interceptors.add(interceptor);
+}
+```
+
+后续的objectFactory、objectWrapperFactory、reflectorFactory节点的解析过程基本都完全一致，大家自己看看就行了。
+
+中间还有个settingsElement方法，这个方法就是将settings节点中的属性传递进Configuration对象中。之前在介绍setting节点解析时也说了，解析完后没有立即将数据传递进Configuration中，而是在此时传递。
+
+### 4.5、environments节点解析
+
+这里先给一个比较完整的plugins节点配置：
+
+```XML
+<environments default="development">
+  <environment id="development">
+    <transactionManager type="JDBC">
+      <property name="..." value="..."/>
+    </transactionManager>
+    <dataSource type="POOLED">
+      <property name="driver" value="${driver}"/>
+      <property name="url" value="${url}"/>
+      <property name="username" value="${username}"/>
+      <property name="password" value="${password}"/>
+    </dataSource>
+  </environment>
+</environments>
+```
+
+解析过程如下所示，节点解析过程依旧是没啥好说的，还是同样的步骤，属性解析、实例化对象，传递进Configuration中。
+
+这里可以注意下`isSpecifiedEnvironment`这个方法，我们都知道environments节点是可以设置多个environment子节点的，真正激活的environment子节点是由environments节点的default属性决定，因此MyBatis在这里先获取父节点的default属性值，然后遍历environment子节点，判断该子节点的id与父节点的default属性是否相同，相同才会去解析配置。
+
+```Java
+// XMLConfigBuilder.java
+private void environmentsElement(XNode context) throws Exception {
+  if (context != null) {
+    if (environment == null) {
+      // 先获取父节点的default属性，该属性指定了默认激活的环境
+      environment = context.getStringAttribute("default");
+    }
+    for (XNode child : context.getChildren()) {
+      // 遍历environment子节点
+      String id = child.getStringAttribute("id");
+      // 如果子节点的ID与默认激活的ID相同，才去解析environment子节点
+      if (isSpecifiedEnvironment(id)) {
+        TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
+        DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
+        DataSource dataSource = dsFactory.getDataSource();
+        Environment.Builder environmentBuilder = new Environment.Builder(id).transactionFactory(txFactory).dataSource(dataSource);
+        configuration.setEnvironment(environmentBuilder.build());
+        break;
+      }
+    }
+  }
+}
+// 判断ID是否相同
+private boolean isSpecifiedEnvironment(String id) {
+  if (environment == null) {
+    throw new BuilderException("No environment specified.");
+  }
+  if (id == null) {
+    throw new BuilderException("Environment requires an id attribute.");
+  }
+  return environment.equals(id);
+}
+```
+
+后续的databaseIdProvider、typeHandlers节点的解析过程基本都完全一致，大家自己看看就行了。
+
+### 4.6、typeHandler介绍
+
+> 该小节部分内容来自官网：https://mybatis.org/mybatis-3/zh/configuration.html#类型处理器（typehandlers）
+
+typeHandlers节点解析也分为包解析和属性解析两类，解析过程类似，这里单独说下typeHandlers的作用。
+
+MyBatis 在设置预处理语句（PreparedStatement）中的参数或从结果集中取出一个值时， 都会用类型处理器将获取到的值以合适的方式转换成 Java 类型。
+
+MyBatis预置了大部分的类型处理器以覆盖日常使用场景，但是对于特殊场景，我们可以重写已有的类型处理器或创建自己的类型处理器来处理不支持的或非标准的类型。 具体做法为：实现 `org.apache.ibatis.type.TypeHandler` 接口， 或继承一个很便利的类 `org.apache.ibatis.type.BaseTypeHandler`， 并且可以（可选地）将它映射到一个 JDBC 类型。
+
+```Java
+// ExampleTypeHandler.java
+@MappedJdbcTypes(JdbcType.VARCHAR)
+public class ExampleTypeHandler extends BaseTypeHandler<String> {
+
+  @Override
+  public void setNonNullParameter(PreparedStatement ps, int i, String parameter, JdbcType jdbcType) throws SQLException {
+    ps.setString(i, parameter);
+  }
+
+  @Override
+  public String getNullableResult(ResultSet rs, String columnName) throws SQLException {
+    return rs.getString(columnName);
+  }
+
+  @Override
+  public String getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+    return rs.getString(columnIndex);
+  }
+
+  @Override
+  public String getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+    return cs.getString(columnIndex);
+  }
+}
+<!-- mybatis-config.xml -->
+<typeHandlers>
+  <typeHandler handler="org.mybatis.example.ExampleTypeHandler"/>
+</typeHandlers>
+```
+
+### 4.7、mappers节点解析
+
+这里先给一个比较完整的mappers节点配置：
+
+```XML
+<mappers>
+  <mapper resource="org/mybatis/builder/AuthorMapper.xml"/>
+  <mapper url="file:///var/mappers/AuthorMapper.xml"/>
+  <mapper class="org.mybatis.builder.AuthorMapper"/>
+  <package name="org.mybatis.builder"/>
+</mappers>
+```
+
+mappers节点解析过程如下所示，大体上分为两类，一类是包扫描的方式解析mapper接口，另一类是根据属性指定mapper资源文件地址，然后通过地址解析mapper接口。
+
+```Java
+// XMLConfigBuilder.java
+private void mapperElement(XNode parent) throws Exception {
+  if (parent != null) {
+    for (XNode child : parent.getChildren()) {
+      if ("package".equals(child.getName())) {
+        // 如果子节点名称为package，则通过扫描包的方式解析mapper接口
+        String mapperPackage = child.getStringAttribute("name");
+        configuration.addMappers(mapperPackage);
+      } else {
+        // 否则，子节点名称为mapper，这里根据mapper节点的属性分别解析出mspper资源文件地址，然后依次解析mapper接口
+        String resource = child.getStringAttribute("resource");
+        String url = child.getStringAttribute("url");
+        String mapperClass = child.getStringAttribute("class");
+        // 根据不同的资源配置方式，调用不同的构造函数创建XMLMapperBuilder解析器，解析mapper.xml文件
+        if (resource != null && url == null && mapperClass == null) {
+          ErrorContext.instance().resource(resource);
+          try (InputStream inputStream = Resources.getResourceAsStream(resource)) {
+            XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource,
+                configuration.getSqlFragments());
+            mapperParser.parse();
+          }
+        } else if (resource == null && url != null && mapperClass == null) {
+          ErrorContext.instance().resource(url);
+          try (InputStream inputStream = Resources.getUrlAsStream(url)) {
+            XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url,
+                configuration.getSqlFragments());
+            mapperParser.parse();
+          }
+        } else if (resource == null && url == null && mapperClass != null) {
+          Class<?> mapperInterface = Resources.classForName(mapperClass);
+          configuration.addMapper(mapperInterface);
+        } else {
+          throw new BuilderException(
+              "A mapper element may only specify a url, resource or class, but not more than one.");
+        }
+      }
+    }
+  }
+}
+```
+
+无论是哪种方式，mappers节点都是告诉MyBatis去哪找SQL映射文件，方便进行下一步的解析。
+
+## 5、mapper.xml映射解析
+
+由于我们使用MyBatis时，大部分时间都是使用mapper.xml配置sql映射的，因此本章节我们主要介绍xml的解析过程。
+
+4.7小节已经分析了mappers节点的解析过程，其中在解析mapper子节点时，构造了XMLMapperBuilder解析器然后再解析mapper.xml文件，如下代码所示：
+
+```Java
+// XMLConfigBuilder.java
+// 先构造
+XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource,
+    configuration.getSqlFragments());
+// 再解析
+mapperParser.parse();
+```
+
+先看看解析器的构造过程：
+
+- 首先会构造XPathParser解析器，该解析器负责将文件输入流解析成Document文档对象。
+- 然后会构造MapperBuilderAssistant对象，该对象在mapper解析时起到辅助解析部分对象的作用。
+
+```Java
+// XMLMapperBuilder.java
+public XMLMapperBuilder(InputStream inputStream, Configuration configuration, String resource,
+    Map<String, XNode> sqlFragments) {
+  // 调用重载的构造方法
+  this(new XPathParser(inputStream, true, configuration.getVariables(), new XMLMapperEntityResolver()), configuration, resource, sqlFragments);
+}
+private XMLMapperBuilder(XPathParser parser, Configuration configuration, String resource,
+    Map<String, XNode> sqlFragments) {
+  super(configuration);
+  // 构造MapperBuilderAssistant，该对象起到辅助解析的作用
+  this.builderAssistant = new MapperBuilderAssistant(configuration, resource);
+  this.parser = parser;
+  this.sqlFragments = sqlFragments;
+  this.resource = resource;
+}
+// XPathParser.java
+public XPathParser(InputStream inputStream, boolean validation, Properties variables, EntityResolver entityResolver) {
+  commonConstructor(validation, variables, entityResolver);
+  // 解析mapper文件流，将数据流转化成文档对象
+  this.document = createDocument(new InputSource(inputStream));
+}
+```
+
+接下来看看文件解析过程：
+
+- mapper.xml文件的解析和config.xml文件的解析非常类似，都是依次解析所有节点
+- 从上面一步步推导下来，我们其实可以知道，一个mapper文件就会创建一个XMLMapperBuilder对象进行解析，一个XMLMapperBuilder对象关联一个builderAssistant对象，因此使用builderAssistant记录名称空间是没问题的，可以确定mapper的唯一性。
+
+```Java
+// XMLMapperBuilder.java
+public void parse() {
+  // 如果资源已经被加载，则不进行解析
+  if (!configuration.isResourceLoaded(resource)) {
+    // 获取mapper根节点，接着解析
+    configurationElement(parser.evalNode("/mapper"));
+    // 记录已经加载的资源，防止二次加载
+    configuration.addLoadedResource(resource);
+    // 绑定名称空间
+    bindMapperForNamespace();
+  }
+  // 处理未解析的一些节点
+  parsePendingResultMaps();
+  parsePendingCacheRefs();
+  parsePendingStatements();
+}
+private void configurationElement(XNode context) {
+  try {
+    // 获取mapper节点的namespace属性
+    String namespace = context.getStringAttribute("namespace");
+    // 校验namespace属性的合法性
+    if (namespace == null || namespace.isEmpty()) {
+      throw new BuilderException("Mapper's namespace cannot be empty");
+    }
+    // 记录名称空间
+    builderAssistant.setCurrentNamespace(namespace);
+    // 依次解析相应节点
+    cacheRefElement(context.evalNode("cache-ref"));
+    cacheElement(context.evalNode("cache"));
+    parameterMapElement(context.evalNodes("/mapper/parameterMap"));
+    resultMapElements(context.evalNodes("/mapper/resultMap"));
+    sqlElement(context.evalNodes("/mapper/sql"));
+    buildStatementFromContext(context.evalNodes("select|insert|update|delete"));
+  } catch (Exception e) {
+    throw new BuilderException("Error parsing Mapper XML. The XML location is '" + resource + "'. Cause: " + e, e);
+  }
+}
+```
+
+### 5.1、cache-ref（二级缓存）节点解析
+
+这里先给一个比较完整的cache-ref节点配置：
+
+```XML
+<cache-ref namespace="com.someone.application.data.SomeMapper"/>
+```
+
+cache-ref的解析如下所示：
+
+- 主要就是存储引用的映射关系，然后将引用名称空间的cache设置当前名称空间中，保证缓存共享。
+- 这里注意一点，由于mapper解析顺序不确定，可能会导致引用的mapper尚未被解析，则获取不到cache对象。这里MyBatis的做法是将其暂存起来，等到所有mapper都解析完成后再解析一遍。
+
+```Java
+// XMLMapperBuilder.java
+private void cacheRefElement(XNode context) {
+  if (context != null) {
+    // 保存当前名称空间和缓存名称空间的映射
+    configuration.addCacheRef(builderAssistant.getCurrentNamespace(), context.getStringAttribute("namespace"));
+    CacheRefResolver cacheRefResolver = new CacheRefResolver(builderAssistant,
+        context.getStringAttribute("namespace"));
+    try {
+      // 将引用名称空间的缓存对象设置进当前名称空间中，保证当前名称空间和引用名称空间共享缓存
+      cacheRefResolver.resolveCacheRef();
+    } catch (IncompleteElementException e) {
+      // 如果解析失败，说明当前引用的名称尚未被解析，则暂时保存起来，等到所有mapper解析完成后再解析一遍
+      configuration.addIncompleteCacheRef(cacheRefResolver);
+    }
+  }
+}
+```
+
+### 5.2、cache（二级缓存）节点解析
+
+这里先给一个比较完整的cache节点配置：
+
+```XML
+<cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true"/>
+<!-- or -->
+<cache type="com.domain.something.MyCustomCache">
+  <property name="cacheFile" value="/tmp/my-custom-cache.tmp"/>
+</cache>
+```
+
+cache的解析如下所示：
+
+- 节点解析过程比较简单，就是解析属性，如果不存在则设置默认值。
+- 之后会使用builderAssistant创建缓存，并将创建好的缓存传递进Configuration中的缓存映射中。这里还将缓存在MapperBuilderAssistant对象中暂存了一份。这是因为在解析cache-ref节点时，我们会从引用名称空间中获取缓存并共享，获取的缓存就是在这里暂存的。（ps：这里再多说一嘴：一个mapper对应一个XMLMapperBuilder，一个XMLMapperBuilder持有一个MapperBuilderAssistant，一个MapperBuilderAssistant又持有一个cache，因此，一个mapper和一个cache是一一对应的。）
+
+```Java
+// XMLMapperBuilder.java
+private void cacheElement(XNode context) {
+  if (context != null) {
+    // 解析指定的属性，如果不存在就设置默认值
+    String type = context.getStringAttribute("type", "PERPETUAL");
+    Class<? extends Cache> typeClass = typeAliasRegistry.resolveAlias(type);
+    String eviction = context.getStringAttribute("eviction", "LRU");
+    Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
+    Long flushInterval = context.getLongAttribute("flushInterval");
+    Integer size = context.getIntAttribute("size");
+    boolean readWrite = !context.getBooleanAttribute("readOnly", false);
+    boolean blocking = context.getBooleanAttribute("blocking", false);
+    Properties props = context.getChildrenAsProperties();
+    // 重点看看这里
+    builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
+  }
+}
+// MapperBuilderAssistant.java
+public Cache useNewCache(Class<? extends Cache> typeClass, Class<? extends Cache> evictionClass, Long flushInterval,
+      Integer size, boolean readWrite, boolean blocking, Properties props) {
+  // 创建缓存对象
+  Cache cache = new CacheBuilder(currentNamespace).implementation(valueOrDefault(typeClass, PerpetualCache.class))
+      .addDecorator(valueOrDefault(evictionClass, LruCache.class)).clearInterval(flushInterval).size(size)
+      .readWrite(readWrite).blocking(blocking).properties(props).build();
+  // 将缓存对象传递进Configuration中的缓存映射(k, v) = (cacheId, cache)
+  configuration.addCache(cache);
+  // 这里将缓存存放再MapperBuilderAssistant中一份，为了后续共享缓存使用
+  currentCache = cache;
+  return cache;
+}
+```
+
+### 5.3、parameterMap节点解析
+
+官网中介绍该节点配置已经被废弃，并可能在将来被移除！请使用行内参数映射。
+
+因此本小节也就不介绍该节点的解析了。
+
+### 5.4、resultMap节点解析
