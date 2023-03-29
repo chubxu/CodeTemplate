@@ -722,3 +722,4 @@ public Cache useNewCache(Class<? extends Cache> typeClass, Class<? extends Cache
 因此本小节也就不介绍该节点的解析了。
 
 ### 5.4、resultMap节点解析
+
