@@ -2,7 +2,7 @@ package org.chubxu.algorithm.leetcode.sword2offer;
 
 import org.chubxu.algorithm.leetcode.TreeNode;
 
-public class So068 {
+public class So068_2 {
     public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
         if (root == null || p == root || q == root) {
             return root;
