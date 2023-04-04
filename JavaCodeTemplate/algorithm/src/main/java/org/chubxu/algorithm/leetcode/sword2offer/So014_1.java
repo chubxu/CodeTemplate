@@ -1,6 +1,6 @@
 package org.chubxu.algorithm.leetcode.sword2offer;
 
-public class So014 {
+public class So014_1 {
     public int cuttingRope(int n) {
         if (n <= 3) {
             return n-1;
