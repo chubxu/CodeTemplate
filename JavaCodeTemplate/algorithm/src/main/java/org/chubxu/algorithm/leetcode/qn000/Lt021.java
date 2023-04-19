@@ -40,7 +40,27 @@ import org.chubxu.algorithm.leetcode.ListNode;
  * @Author chubxu
  */
 public class Lt021 {
+
     public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        if (list1 == null) return list2;
+        if (list2 == null) return list1;
+        ListNode dummyNode = new ListNode(-1, null);
+        ListNode cur = dummyNode;
+        while (list1 != null && list2 != null) {
+            if (list1.val < list2.val) {
+                cur.next = list1;
+                list1 = list1.next;
+            } else {
+                cur.next = list2;
+                list2 = list2.next;
+            }
+            cur = cur.next;
+        }
+        if (list1 != null) cur.next = list1;
+        if (list2 != null) cur.next = list2;
+        return dummyNode.next;
+    }
+    public ListNode mergeTwoLists3(ListNode list1, ListNode list2) {
         ListNode pre = new ListNode();
         ListNode cur = pre;
         while (list1 != null && list2 != null) {
