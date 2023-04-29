@@ -36,3 +36,9 @@ build/
 
 ### Windows ###
 *.bat
+
+### 数据集 ###
+data/
+
+### 模型 ###
+*.pth
