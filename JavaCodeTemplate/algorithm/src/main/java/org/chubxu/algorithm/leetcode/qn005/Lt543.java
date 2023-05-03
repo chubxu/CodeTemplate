@@ -35,7 +35,7 @@ import org.chubxu.algorithm.leetcode.TreeNode;
 public class Lt543 {
     int res = 0;
     public int diameterOfBinaryTree(TreeNode root) {
-        help(root);
+        help2(root);
         return res;
     }
 
@@ -44,7 +44,15 @@ public class Lt543 {
         int leftD = help(root.left);
         int leftR = help(root.right);
         int max = Math.max(leftD, leftR) + 1;
-        res = Math.max(res, leftD + leftR + 1);
+        res = Math.max(res, leftD + leftR);
         return max;
+    }
+
+    public int help2(TreeNode root) {
+        if (root == null) return 0;
+        int l = help2(root.left);
+        int r = help2(root.right);
+        res = Math.max(res, l + r);
+        return Math.max(l, r) + 1;
     }
 }
