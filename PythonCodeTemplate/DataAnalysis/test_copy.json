@@ -1,0 +1,16 @@
+{
+    "sites": [
+        {
+            "name": "\u6559\u7a0b",
+            "url": "www.practice.com"
+        },
+        {
+            "name": "google",
+            "url": "www.google.com"
+        },
+        {
+            "name": "\u5fae\u535a",
+            "url": "www.weibo.com"
+        }
+    ]
+}
