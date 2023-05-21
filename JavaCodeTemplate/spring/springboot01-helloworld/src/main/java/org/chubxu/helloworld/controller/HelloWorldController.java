@@ -1,6 +1,7 @@
 package org.chubxu.helloworld.controller;
 
 import org.chubxu.common.R;
+import org.chubxu.easylog.annotation.ELog;
 import org.chubxu.helloworld.factory.bean.FirstBean;
 import org.chubxu.helloworld.factory.bean.FirstFactoryBean;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,14 +19,14 @@ import javax.annotation.Resource;
  */
 @RestController
 public class HelloWorldController {
-    @Resource
-    private FirstBean firstBean;
-    @Resource
-    private FirstFactoryBean firstFactoryBean;
     @RequestMapping("/hello")
     public R<String> hello(){
-        System.out.println(firstBean);
-        System.out.println(firstFactoryBean);
         return new R<String>().ok().setData("Hello World");
+    }
+
+    @ELog
+    @RequestMapping("/test/easylog")
+    public R<String> testEasyLog(){
+        return new R<String>().ok().setData("Hello EasyLog");
     }
 }

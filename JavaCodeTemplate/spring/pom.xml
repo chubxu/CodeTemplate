@@ -26,7 +26,7 @@
         <maven.compiler.target>11</maven.compiler.target>
         <mariadb.java.client>3.0.7</mariadb.java.client>
         <lombok.version>1.18.4</lombok.version>
-        <springboot.version>2.3.5.RELEASE</springboot.version>
+        <springboot.version>2.7.0</springboot.version>
         <mybatis.starter.version>1.3.2</mybatis.starter.version>
         <mybatis.plus.version>3.4.1</mybatis.plus.version>
         <mybatis.plus.generator.version>3.4.1</mybatis.plus.generator.version>
