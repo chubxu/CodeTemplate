@@ -1,4 +1,4 @@
-package org.chubxu.algorithm.leetcode.qn026.qn027;
+package org.chubxu.algorithm.leetcode.qn027;
 
 import org.junit.Test;
 
